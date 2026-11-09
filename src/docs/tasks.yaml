@@ -1,0 +1,307 @@
+paths:
+  /tasks:
+    get:
+      tags: [Tasks]
+      operationId: getTasks
+      summary: Alle Aufgaben abrufen
+      description: Gibt alle gespeicherten Aufgaben als JSON-Array zurück. Ist die Liste leer, wird `[]` zurückgegeben.
+      responses:
+        '200':
+          description: Liste aller Aufgaben
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              example:
+                - id: 1
+                  title: Beispielaufgabe
+                  description: Dies ist eine Beispielbeschreibung.
+                  dueDate: '2025-08-31'
+                  done: false
+
+    post:
+      tags: [Tasks]
+      operationId: createTask
+      summary: Neue Aufgabe erstellen
+      description: |
+        Erstellt eine neue Aufgabe. Die `id` vergibt der Server.
+
+        **Validierungsregeln (in dieser Reihenfolge):**
+        1. `title` und `dueDate` müssen vorhanden sein → sonst `400`
+        2. `dueDate` muss ein gültiges Datum **in der Zukunft** sein → sonst `400`
+        3. `title` muss eindeutig sein → sonst `409`
+
+        `description` ist standardmässig `""`, `done` standardmässig `false`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              vollstaendig:
+                summary: Alle Felder
+                value:
+                  title: Swagger-Doku schreiben
+                  description: Alle sechs Endpunkte dokumentieren
+                  dueDate: '2026-12-31'
+                  done: false
+              minimal:
+                summary: Nur Pflichtfelder
+                value:
+                  title: Einkaufen
+                  dueDate: '2026-12-24'
+      responses:
+        '201':
+          description: Aufgabe erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 2
+                title: Swagger-Doku schreiben
+                description: Alle sechs Endpunkte dokumentieren
+                dueDate: '2026-12-31'
+                done: false
+        '400':
+          description: Pflichtfeld fehlt, `dueDate` ist ungültig bzw. nicht in der Zukunft oder der Body ist kein gültiges JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                pflichtfeldFehlt:
+                  summary: title oder dueDate fehlt
+                  value: { error: title und dueDate sind erforderlich. }
+                datumUngueltig:
+                  summary: dueDate ungültig oder nicht in der Zukunft
+                  value: { error: dueDate muss ein gültiges Datum in der Zukunft sein. }
+                ungueltigesJson:
+                  summary: Body ist kein gültiges JSON
+                  value: { error: Request-Body ist kein gültiges JSON. }
+        '409':
+          description: Eine Aufgabe mit diesem Titel existiert bereits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error: Eine Aufgabe mit diesem Titel existiert bereits.
+
+  /tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+
+    get:
+      tags: [Tasks]
+      operationId: getTaskById
+      summary: Einzelne Aufgabe abrufen
+      description: Gibt die Aufgabe mit der angegebenen ID zurück.
+      responses:
+        '200':
+          description: Aufgabe gefunden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Tasks]
+      operationId: replaceTask
+      summary: Aufgabe vollständig ersetzen
+      description: |
+        Ersetzt die Aufgabe mit der angegebenen ID vollständig.
+        Nicht mitgeschickte optionale Felder werden auf ihre Standardwerte zurückgesetzt
+        (`description: ""`, `done: false`).
+
+        **Validierung:** `title` und `dueDate` sind Pflicht; `dueDate` muss ein gültiges Datum sein
+        (im Gegensatz zu POST muss es **nicht** in der Zukunft liegen). Der Body wird vor der ID geprüft.
+        Ein doppelter Titel wird bei PUT nicht geprüft.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+            example:
+              title: Beispielaufgabe (überarbeitet)
+              description: Neue Beschreibung
+              dueDate: '2026-11-30'
+              done: false
+      responses:
+        '200':
+          description: Aufgabe ersetzt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 1
+                title: Beispielaufgabe (überarbeitet)
+                description: Neue Beschreibung
+                dueDate: '2026-11-30'
+                done: false
+        '400':
+          description: Pflichtfeld fehlt, `dueDate` ist kein gültiges Datum oder der Body ist kein gültiges JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                pflichtfeldFehlt:
+                  summary: title oder dueDate fehlt
+                  value: { error: title und dueDate sind erforderlich. }
+                datumUngueltig:
+                  summary: dueDate ungültig
+                  value: { error: dueDate muss ein gültiges Datum sein. }
+                ungueltigesJson:
+                  summary: Body ist kein gültiges JSON
+                  value: { error: Request-Body ist kein gültiges JSON. }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Tasks]
+      operationId: markTaskDone
+      summary: Aufgabe als erledigt markieren
+      description: |
+        Setzt `done` der Aufgabe auf `true`. Es wird **kein Request-Body** erwartet;
+        ein mitgeschickter Body wird ignoriert. Mehrfaches Aufrufen ändert nichts mehr (idempotent).
+      responses:
+        '200':
+          description: Aufgabe als erledigt markiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 1
+                title: Beispielaufgabe
+                description: Dies ist eine Beispielbeschreibung.
+                dueDate: '2025-08-31'
+                done: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Tasks]
+      operationId: deleteTask
+      summary: Aufgabe löschen
+      description: Löscht die Aufgabe mit der angegebenen ID. Bei Erfolg wird **kein Body** zurückgegeben.
+      responses:
+        '204':
+          description: Aufgabe gelöscht (kein Response-Body)
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: Numerische ID der Aufgabe (nicht-numerische Werte führen zu `404`)
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+  responses:
+    NotFound:
+      description: Aufgabe nicht gefunden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error: Aufgabe nicht gefunden.
+
+  schemas:
+    Task:
+      type: object
+      description: Vollständige Aufgabe, wie sie der Server zurückgibt
+      required: [id, title, description, dueDate, done]
+      properties:
+        id:
+          type: integer
+          description: Vom Server vergebene, fortlaufende ID
+          examples: [1]
+        title:
+          type: string
+          description: Titel der Aufgabe (bei POST eindeutig)
+          examples: [Beispielaufgabe]
+        description:
+          type: string
+          description: Beschreibung, standardmässig leer
+          examples: [Dies ist eine Beispielbeschreibung.]
+        dueDate:
+          type: string
+          format: date
+          description: Fälligkeitsdatum (ISO 8601, z. B. 2026-12-31)
+          examples: ['2025-08-31']
+        done:
+          type: boolean
+          description: Erledigt-Status
+          examples: [false]
+
+    CreateTaskRequest:
+      type: object
+      description: Request-Body für `POST /tasks`
+      required: [title, dueDate]
+      properties:
+        title:
+          type: string
+          description: Eindeutiger Titel (sonst `409`)
+          examples: [Swagger-Doku schreiben]
+        description:
+          type: string
+          default: ''
+          examples: [Alle sechs Endpunkte dokumentieren]
+        dueDate:
+          type: string
+          format: date
+          description: Gültiges Datum, das in der Zukunft liegen muss (sonst `400`)
+          examples: ['2026-12-31']
+        done:
+          type: boolean
+          default: false
+          examples: [false]
+
+    UpdateTaskRequest:
+      type: object
+      description: Request-Body für `PUT /tasks/{id}` (ersetzt die Aufgabe vollständig)
+      required: [title, dueDate]
+      properties:
+        title:
+          type: string
+          examples: [Beispielaufgabe (überarbeitet)]
+        description:
+          type: string
+          default: ''
+          description: Wird auf `""` gesetzt, wenn nicht angegeben
+          examples: [Neue Beschreibung]
+        dueDate:
+          type: string
+          format: date
+          description: Gültiges Datum (darf auch in der Vergangenheit liegen)
+          examples: ['2026-11-30']
+        done:
+          type: boolean
+          default: false
+          description: Wird auf `false` gesetzt, wenn nicht angegeben
+          examples: [false]
+
+    ApiError:
+      type: object
+      description: Einheitliches Format aller Fehlerantworten
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Fehlermeldung
+          examples: [Aufgabe nicht gefunden.]

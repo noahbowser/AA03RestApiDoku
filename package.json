@@ -1,0 +1,28 @@
+{
+  "name": "aa03restapidoku",
+  "version": "1.0.0",
+  "description": "Task-API mit Express, dokumentiert mit OpenAPI 3.1 und Swagger UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "verify": "node scripts/verify-docs.js",
+    "export:openapi": "node -e \"require('fs').writeFileSync('openapi.json', JSON.stringify(require('./src/docs/swagger').openapiSpec, null, 2))\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noahbowser/AA03RestApiDoku.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/noahbowser/AA03RestApiDoku/issues"
+  },
+  "homepage": "https://github.com/noahbowser/AA03RestApiDoku#readme",
+  "dependencies": {
+    "express": "^5.3.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
